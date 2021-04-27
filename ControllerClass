@@ -1,0 +1,88 @@
+package org.netjs.controller;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.netjs.model.City;
+import org.netjs.model.CityListContainer;
+import org.netjs.model.Option;
+import org.netjs.model.UserPreferences;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.google.gson.Gson;
+
+@Controller
+//@RequestMapping(value = { "/" })
+public class UserController {
+
+	ArrayList<City> cityList;
+	ArrayList<Option> optionList;
+	int cost = 0;
+
+	@RequestMapping(value = "/", method = RequestMethod.GET)
+	public String index(Model model) {
+
+		//init
+		optionList = new ArrayList<Option>();
+		optionList.add(new Option(1,"Fönsterputs",300));
+		optionList.add(new Option(2,"Balkongstädning",150));
+		optionList.add(new Option(3,"Bortforsling av skräp",400));	
+
+
+		cityList = new ArrayList<City>();
+		cityList.add(new City(1,"Stockholm", 65, 
+				new ArrayList<Option>(Arrays.asList(optionList.get(0),
+						optionList.get(1)))));
+		cityList.add(new City(2,"Uppsala", 55, 
+				new ArrayList<Option>(Arrays.asList(optionList.get(0),
+						optionList.get(1),
+						optionList.get(2)))));
+
+		CityListContainer cl = new CityListContainer();
+		cl.setCities(cityList);
+
+		model.addAttribute("Cities", cl);
+
+		UserPreferences up = new UserPreferences();
+		up.setCities(cityList);
+		model.addAttribute("preferences",up);
+		return "home";
+	}
+
+	@RequestMapping(value = "/showCost", method = RequestMethod.POST)
+	public String showCost(@ModelAttribute("preferences") UserPreferences preferences, Model model) {		
+
+
+		for(Option op : optionList) {
+			if(preferences.getSelectedOptions().contains(op.getId()) ) {
+				cost += op.getCost();
+			}
+		}
+		preferences.setTotalCost(cost);
+		model.addAttribute("preferences", preferences);
+		return "showCost";
+	}
+
+	@RequestMapping(value = "/showOptions", method = RequestMethod.POST)
+	public String showOptions(@ModelAttribute("preferences") UserPreferences preferences, Model model) {
+		for(City city: cityList) {
+			if(city.getId() == preferences.getCityId()) {
+				preferences.setSelectedCity(city);
+				model.addAttribute("selectedCity",city);
+			}
+		}		
+		cost = preferences.getSelectedCity().getBaseCost() * preferences.getSquareMeter();
+		model.addAttribute("preferences", preferences);
+		return "showOptions";
+	}
+
+}
